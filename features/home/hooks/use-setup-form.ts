@@ -25,6 +25,7 @@ export function useSetupForm() {
   const [timePerPlayer,     setTimePerPlayer]     = useState(DEFAULT_TIME_PER_PLAYER)
   const [answerDisplayMode, setAnswerDisplayMode] = useState<'local' | 'judge'>('local')
   const [editingTeamName,   setEditingTeamName]   = useState('')
+  const [isPending,         setIsPending]         = useState(false)
 
   // ── Reset (called on modal close) ──────────────────────────────────────────
   const resetForm = useCallback(() => {
@@ -33,6 +34,7 @@ export function useSetupForm() {
     setTimePerPlayer(DEFAULT_TIME_PER_PLAYER)
     setAnswerDisplayMode('local')
     setEditingTeamName('')
+    setIsPending(false)
   }, [])
 
   // ── Team name editing ───────────────────────────────────────────────────────
@@ -167,6 +169,7 @@ export function useSetupForm() {
     }
 
     // 5. Build session
+    setIsPending(true)
     const gameSessionData: GameSessionData = {
       gameId: generateGameId(),
       team1Data: {
@@ -194,6 +197,7 @@ export function useSetupForm() {
       await saveGameSession(gameSessionData)
     } catch {
       toast.error('خطأ في حفظ البيانات', { description: 'تعذر حفظ بيانات اللعبة', duration: 4000 })
+      setIsPending(false)
       return
     }
 
@@ -205,13 +209,17 @@ export function useSetupForm() {
     })
 
     closePopup()
-    setTimeout(() => openPopup('post-setup'), 150)
+    setTimeout(() => {
+      openPopup('post-setup')
+      setIsPending(false)
+    }, 150)
   }, [teams, rounds, timePerPlayer, answerDisplayMode, closePopup, openPopup, setGameSession])
 
   return {
     // state
     teams, rounds, timePerPlayer, answerDisplayMode, editingTeamName,
     allPlayerNames,
+    isPending,
     // setters (for selects)
     setRounds, setTimePerPlayer, setAnswerDisplayMode, setEditingTeamName,
     // handlers

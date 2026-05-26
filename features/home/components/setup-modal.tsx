@@ -72,6 +72,7 @@ export function SetupModal() {
             onClick={form.handleContinue}
             text="متابعة"
             isFullWidth
+            isPending={form.isPending}
             className={[
               "group relative overflow-hidden rounded-xl",
               "bg-blue-500 hover:bg-blue-600",

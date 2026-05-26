@@ -101,10 +101,10 @@ export const CATEGORY_IMAGES: Record<string, { image: string; answer: string }[]
         { "image": "/images/brands/img_23.png", "answer": "فيراري" },
         { "image": "/images/brands/img_25.svg", "answer": "نستله" },
         { "image": "/images/brands/img_24.png", "answer": "لاكوست" },
-        { "image": "/images/brands/img_26.svg", "answer": "ستارلينك" },
-        { "image": "/images/brands/img_28.svg", "answer": "بامبرز" },
-        { "image": "/images/brands/img_29.svg", "answer": "ريد بول" },
-        { "image": "/images/brands/img_30.svg", "answer": "نينتندو" }
+        { "image": "/images/brands/img_28.svg", "answer": "ستارلينك" },
+        { "image": "/images/brands/img_26.png", "answer": "بامبرز" },
+        { "image": "/images/brands/img_29.png", "answer": "ريد بول" },
+        { "image": "/images/brands/img_30.jpg", "answer": "نينتندو" }
     ],
     "حيوانات": [
         { "image": "/images/animals/img_1.jpg", "answer": "كلب" },
