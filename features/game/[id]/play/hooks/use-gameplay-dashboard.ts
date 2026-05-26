@@ -147,6 +147,8 @@ export function useGameplayDashboard(
     team1TimeMs, team2TimeMs,
     isPaused, isMenuOpen,
     currentImage,
+    preloadedImages,
+    currentIndex,
     showAnswer,
     setShowAnswer,
     answerDisplayMode,

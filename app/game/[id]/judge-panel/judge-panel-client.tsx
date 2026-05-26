@@ -1,26 +1,51 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Eye, EyeOff, Wifi, WifiOff, HelpCircle, Image as ImageIcon, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import type { GameSessionData } from '@/contexts/popup-context'
 import { getGameState } from '@/lib/redis-actions'
+import { CATEGORY_IMAGES, DEFAULT_IMAGES } from '@/features/game/[id]/play/data/image'
+
+// Gather and deduplicate all game images
+const ALL_IMAGES = Array.from(
+  new Set([
+    ...DEFAULT_IMAGES,
+    ...Object.values(CATEGORY_IMAGES).flatMap((cat) => cat.map((item) => item.image)),
+  ])
+)
 
 interface JudgePanelClientProps {
   gameId: string
 }
 
-interface ImageState {
-  image: string
-  answer: string
-}
-
 export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
-  const [gameState, setGameState] = useState<ImageState | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [revealAnswer, setRevealAnswer] = useState(true)
   const [gameData, setGameData] = useState<GameSessionData | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Refs for direct DOM manipulation to bypass React virtual DOM overhead
+  const answerTextRef = useRef<HTMLHeadingElement>(null)
+  const answerHiddenRef = useRef<HTMLDivElement>(null)
+  const answerBannerRef = useRef<HTMLDivElement>(null)
+  const imageContainerRef = useRef<HTMLDivElement>(null)
+  const fallbackRef = useRef<HTMLDivElement>(null)
+  const team1CardRef = useRef<HTMLDivElement>(null)
+  const team2CardRef = useRef<HTMLDivElement>(null)
+  const currentAnswerRef = useRef<string>('')
+
+  // Strict browser caching & JS pre-decoding on initialization
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    ALL_IMAGES.forEach((src) => {
+      const img = new Image()
+      img.src = src
+      img.decode().catch(() => {
+        // Safe to ignore decode errors on background preloading
+      })
+    })
+  }, [])
 
   // ── Load general game session info ──────────────────────────────────────────
   useEffect(() => {
@@ -38,6 +63,133 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
     }
   }, [gameId])
 
+  // ── Synchronous Direct DOM Updates Handler ──────────────────────────────
+  const updateDOMState = (image: string, answer: string, teamId?: number) => {
+    // 1. Update text Content natively (instant text swap)
+    currentAnswerRef.current = answer || ''
+    if (answerTextRef.current) {
+      answerTextRef.current.textContent = answer || 'لا يوجد إجابة حالياً'
+      
+      // GPU scale/fade animation reset & trigger (Zero layout reflow)
+      answerTextRef.current.style.transition = 'none'
+      answerTextRef.current.style.transform = 'scale(0.96)'
+      answerTextRef.current.style.opacity = '0.3'
+      
+      requestAnimationFrame(() => {
+        if (answerTextRef.current) {
+          answerTextRef.current.style.transition = 'transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out'
+          answerTextRef.current.style.transform = 'scale(1)'
+          answerTextRef.current.style.opacity = '1'
+        }
+      })
+    }
+
+    // 2. Update Image Stack visibility directly (hidden/block toggle)
+    if (imageContainerRef.current) {
+      const images = imageContainerRef.current.children
+      let matched = false
+      for (let i = 0; i < images.length; i++) {
+        const child = images[i] as HTMLElement
+        const imgSrc = child.getAttribute('data-img-src')
+        if (imgSrc === image) {
+          child.classList.remove('opacity-0', 'invisible', 'pointer-events-none')
+          child.classList.add('opacity-100', 'visible')
+          matched = true
+        } else {
+          child.classList.remove('opacity-100', 'visible')
+          child.classList.add('opacity-0', 'invisible', 'pointer-events-none')
+        }
+      }
+      
+      // Update fallback viewport display
+      if (fallbackRef.current) {
+        if (matched && image) {
+          fallbackRef.current.classList.remove('block')
+          fallbackRef.current.classList.add('hidden')
+        } else {
+          fallbackRef.current.classList.remove('hidden')
+          fallbackRef.current.classList.add('block')
+        }
+      }
+    }
+
+    // 3. Highlight active team and colors via CSS custom properties (GPU-accelerated)
+    if (teamId === 1) {
+      if (team1CardRef.current) {
+        team1CardRef.current.style.setProperty('--scale', '1.04')
+        team1CardRef.current.style.setProperty('--border-color', 'rgba(96, 165, 250, 0.5)')
+        team1CardRef.current.style.setProperty('--box-shadow', '0 10px 25px -5px rgba(96, 165, 250, 0.25), 0 8px 10px -6px rgba(96, 165, 250, 0.25)')
+        team1CardRef.current.style.setProperty('--opacity', '1')
+      }
+      if (team2CardRef.current) {
+        team2CardRef.current.style.setProperty('--scale', '0.96')
+        team2CardRef.current.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.05)')
+        team2CardRef.current.style.setProperty('--box-shadow', 'none')
+        team2CardRef.current.style.setProperty('--opacity', '0.5')
+      }
+      if (answerBannerRef.current) {
+        answerBannerRef.current.style.setProperty('--team-border-color', 'rgba(59, 130, 246, 0.4)')
+        answerBannerRef.current.style.setProperty('--team-bg-color', 'rgba(30, 58, 138, 0.2)')
+      }
+    } else if (teamId === 2) {
+      if (team1CardRef.current) {
+        team1CardRef.current.style.setProperty('--scale', '0.96')
+        team1CardRef.current.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.05)')
+        team1CardRef.current.style.setProperty('--box-shadow', 'none')
+        team1CardRef.current.style.setProperty('--opacity', '0.5')
+      }
+      if (team2CardRef.current) {
+        team2CardRef.current.style.setProperty('--scale', '1.04')
+        team2CardRef.current.style.setProperty('--border-color', 'rgba(248, 113, 113, 0.5)')
+        team2CardRef.current.style.setProperty('--box-shadow', '0 10px 25px -5px rgba(248, 113, 113, 0.25), 0 8px 10px -6px rgba(248, 113, 113, 0.25)')
+        team2CardRef.current.style.setProperty('--opacity', '1')
+      }
+      if (answerBannerRef.current) {
+        answerBannerRef.current.style.setProperty('--team-border-color', 'rgba(239, 68, 68, 0.4)')
+        answerBannerRef.current.style.setProperty('--team-bg-color', 'rgba(127, 29, 29, 0.2)')
+      }
+    } else {
+      // Default / reset state
+      if (team1CardRef.current) {
+        team1CardRef.current.style.setProperty('--scale', '1')
+        team1CardRef.current.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.05)')
+        team1CardRef.current.style.setProperty('--box-shadow', 'none')
+        team1CardRef.current.style.setProperty('--opacity', '1')
+      }
+      if (team2CardRef.current) {
+        team2CardRef.current.style.setProperty('--scale', '1')
+        team2CardRef.current.style.setProperty('--border-color', 'rgba(255, 255, 255, 0.05)')
+        team2CardRef.current.style.setProperty('--box-shadow', 'none')
+        team2CardRef.current.style.setProperty('--opacity', '1')
+      }
+      if (answerBannerRef.current) {
+        answerBannerRef.current.style.setProperty('--team-border-color', 'rgba(16, 185, 129, 0.3)')
+        answerBannerRef.current.style.setProperty('--team-bg-color', 'rgba(6, 78, 59, 0.2)')
+      }
+    }
+  }
+
+  // Toggle reveal answer manually (direct DOM + React state for button style)
+  const toggleReveal = () => {
+    setRevealAnswer(prev => {
+      const next = !prev
+      if (answerTextRef.current && answerHiddenRef.current) {
+        if (next) {
+          answerTextRef.current.classList.remove('hidden')
+          answerTextRef.current.classList.add('block')
+          answerHiddenRef.current.classList.remove('block')
+          answerHiddenRef.current.classList.add('hidden')
+        } else {
+          answerTextRef.current.classList.remove('block')
+          answerTextRef.current.classList.add('hidden')
+          answerHiddenRef.current.classList.remove('hidden')
+          answerHiddenRef.current.classList.add('block')
+        }
+      }
+      return next
+    })
+  }
+
   // ── Real-time SSE Sync ──────────────────────────────────────────────────────
   useEffect(() => {
     // 1. Initial State Fetch
@@ -45,7 +197,7 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
       try {
         const state = await getGameState(gameId)
         if (state) {
-          setGameState(state)
+          updateDOMState(state.image || '', state.answer || '', state.teamId)
         }
       } catch (err) {
         console.error('Failed to fetch initial state from Redis:', err)
@@ -67,18 +219,8 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
         if (data) {
           const newImg = data.imageId || data.image
           const newAns = data.answer
-          setGameState(prev => {
-            if (!prev) {
-              return {
-                image: newImg || '',
-                answer: newAns || '',
-              }
-            }
-            return {
-              image: newImg !== undefined ? newImg : prev.image,
-              answer: newAns !== undefined ? newAns : prev.answer,
-            }
-          })
+          const teamId = data.teamId
+          updateDOMState(newImg || '', newAns || '', teamId)
         }
       } catch (err) {
         console.error('Error parsing SSE payload:', err)
@@ -142,11 +284,33 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
             
             {gameData ? (
               <div className="space-y-4">
-                <div>
+                {/* Team 1 Card */}
+                <div 
+                  ref={team1CardRef}
+                  className="rounded-xl border border-white/5 bg-white/5 p-4 transition-all duration-300 ease-out"
+                  style={{
+                    transform: 'scale(var(--scale, 1))',
+                    borderColor: 'var(--border-color, rgba(255, 255, 255, 0.05))',
+                    boxShadow: 'var(--box-shadow, none)',
+                    opacity: 'var(--opacity, 1)',
+                    willChange: 'transform, opacity',
+                  }}
+                >
                   <span className="block text-xs text-white/40">الفريق الأول</span>
                   <span className="text-base font-bold text-blue-400">{gameData.team1Data.name}</span>
                 </div>
-                <div>
+                {/* Team 2 Card */}
+                <div 
+                  ref={team2CardRef}
+                  className="rounded-xl border border-white/5 bg-white/5 p-4 transition-all duration-300 ease-out"
+                  style={{
+                    transform: 'scale(var(--scale, 1))',
+                    borderColor: 'var(--border-color, rgba(255, 255, 255, 0.05))',
+                    boxShadow: 'var(--box-shadow, none)',
+                    opacity: 'var(--opacity, 1)',
+                    willChange: 'transform, opacity',
+                  }}
+                >
                   <span className="block text-xs text-white/40">الفريق الثاني</span>
                   <span className="text-base font-bold text-red-400">{gameData.team2Data.name}</span>
                 </div>
@@ -192,44 +356,68 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
             </h2>
 
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
-              {gameState?.image ? (
-                <Image 
-                  src={gameState.image} 
-                  alt="السؤال الحالي" 
-                  fill
-                  priority
-                  sizes="(max-width: 768px) 100vw, 600px"
-                  className="object-contain"
-                  unoptimized
-                />
-              ) : (
-                <div className="text-center p-8">
-                  <span className="block text-3xl mb-2 animate-bounce">⏱️</span>
-                  <p className="text-sm text-white/40">في انتظار بدء اللعب لعرض السؤال...</p>
-                </div>
-              )}
+              {/* Image Stack Viewport container */}
+              <div ref={imageContainerRef} className="absolute inset-0 w-full h-full">
+                {ALL_IMAGES.map((src, idx) => (
+                  <div
+                    key={src + '-' + idx}
+                    data-img-src={src}
+                    className="absolute inset-0 w-full h-full opacity-0 invisible pointer-events-none transition-[opacity,visibility] duration-0"
+                  >
+                    <Image 
+                      src={src} 
+                      alt={`السؤال ${idx}`} 
+                      fill
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Fallback when no image is active */}
+              <div 
+                ref={fallbackRef}
+                className="text-center p-8 block"
+              >
+                <span className="block text-3xl mb-2 animate-bounce">⏱️</span>
+                <p className="text-sm text-white/40">في انتظار بدء اللعب لعرض السؤال...</p>
+              </div>
             </div>
           </div>
 
           {/* The Answer Banner */}
-          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-950/20 p-6 backdrop-blur-md relative overflow-hidden">
+          <div 
+            ref={answerBannerRef}
+            className="rounded-3xl border transition-all duration-300 ease-out p-6 backdrop-blur-md relative overflow-hidden"
+            style={{
+              borderColor: 'var(--team-border-color, rgba(16, 185, 129, 0.3))',
+              backgroundColor: 'var(--team-bg-color, rgba(6, 78, 59, 0.2))',
+            }}
+          >
             {/* Background Glow */}
             <div className="absolute -inset-10 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
             <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
                 <span className="text-xs font-bold text-emerald-400/70 block mb-1">الإجابة الصحيحة المعتمدة</span>
-                {revealAnswer ? (
-                  <h3 className="text-3xl md:text-4xl font-black text-emerald-300 drop-shadow-md">
-                    {gameState?.answer || 'لا يوجد إجابة حالياً'}
-                  </h3>
-                ) : (
-                  <div className="text-lg text-white/30 italic">الإجابة مخفية حالياً</div>
-                )}
+                <h3 
+                  ref={answerTextRef}
+                  className={`text-3xl md:text-4xl font-black text-emerald-300 drop-shadow-md will-change-[transform,opacity] ${revealAnswer ? 'block' : 'hidden'}`}
+                >
+                  {currentAnswerRef.current || 'لا يوجد إجابة حالياً'}
+                </h3>
+                <div 
+                  ref={answerHiddenRef}
+                  className={`text-lg text-white/30 italic ${revealAnswer ? 'hidden' : 'block'}`}
+                >
+                  الإجابة مخفية حالياً
+                </div>
               </div>
 
               <button
-                onClick={() => setRevealAnswer(prev => !prev)}
+                onClick={toggleReveal}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all duration-300 ${
                   revealAnswer 
                     ? 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10' 
@@ -257,6 +445,16 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
       <footer className="mx-auto max-w-5xl mt-12 text-center text-xs text-white/20 border-t border-white/5 pt-4">
         من الأسرع • جميع الحقوق محفوظة لغرفة التحكيم
       </footer>
+      {/* Hidden Image Preloader Stack */}
+      <div
+        style={{ display: 'none', width: 0, height: 0, overflow: 'hidden' }}
+        className="hidden"
+        aria-hidden="true"
+      >
+        {ALL_IMAGES.map((src) => (
+          <img key={src} src={src} alt="" loading="eager" />
+        ))}
+      </div>
     </div>
   )
 }

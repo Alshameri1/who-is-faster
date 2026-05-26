@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useGamePlay }            from './hooks/use-game-play'
 import { Loading as LoadingScreen }          from '@/app/_loading'
 import { Error as ErrorScreen }            from '@/app/_error'
@@ -12,9 +13,30 @@ import { RoundWinnerOverlay }     from './components/round-winner-overlay'
 import { GameOverScreen }         from './components/game-over-screen'
 import { TieBreakerIntro }        from './components/tie-breaker-intro'
 import type { GamePlayClientProps } from './interfaces/types'
+import { CATEGORY_IMAGES, DEFAULT_IMAGES } from './data/image'
+
+// Gather and deduplicate all game images
+const ALL_IMAGES = Array.from(
+  new Set([
+    ...DEFAULT_IMAGES,
+    ...Object.values(CATEGORY_IMAGES).flatMap((cat) => cat.map((item) => item.image)),
+  ])
+)
 
 export function GamePlayClient({ gameId }: GamePlayClientProps) {
   const game = useGamePlay(gameId)
+
+  // Strict browser caching & JS pre-decoding on initialization
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    ALL_IMAGES.forEach((src) => {
+      const img = new Image()
+      img.src = src
+      img.decode().catch(() => {
+        // Safe to ignore decode errors on background preloading
+      })
+    })
+  }, [])
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (game.gameState === 'LOADING') return <LoadingScreen />
@@ -56,6 +78,16 @@ export function GamePlayClient({ gameId }: GamePlayClientProps) {
   // ── Main stage wrapper ─────────────────────────────────────────────────────
   return (
     <div className="h-screen overflow-hidden bg-[#0c1628]">
+      {/* Hidden Image Preloader Stack */}
+      <div
+        style={{ display: 'none', width: 0, height: 0, overflow: 'hidden' }}
+        className="hidden"
+        aria-hidden="true"
+      >
+        {ALL_IMAGES.map((src) => (
+          <img key={src} src={src} alt="" loading="eager" />
+        ))}
+      </div>
 
       {game.gameState === 'ROUND_INTRO' && (
         <RoundIntro

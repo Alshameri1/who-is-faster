@@ -22,6 +22,8 @@ export function GameplayDashboard({
     team1TimeMs, team2TimeMs,
     isPaused, isMenuOpen,
     currentImage,
+    preloadedImages,
+    currentIndex,
     showAnswer,
     setShowAnswer,
     answerDisplayMode,
@@ -75,17 +77,30 @@ export function GameplayDashboard({
           )}
           {/* Image — fills remaining space */}
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border-2 border-white/20 bg-white/5 md:rounded-3xl flex items-center justify-center">
-            {currentImage?.image && (
-              <Image
-                src={currentImage.image}
-                alt="تحدي"
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 800px"
-                className="object-contain p-2"
-                unoptimized
-              />
-            )}
+            {preloadedImages.map((img, idx) => {
+              const isActive = idx === currentIndex
+              return (
+                <div
+                  key={img.image + '-' + idx}
+                  className={[
+                    'absolute inset-0 w-full h-full transition-[opacity,visibility] duration-0',
+                    isActive ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+                  ].join(' ')}
+                >
+                  {img.image && (
+                    <Image
+                      src={img.image}
+                      alt={`تحدي ${idx}`}
+                      fill
+                      priority={isActive || idx === (currentIndex + 1) % preloadedImages.length}
+                      sizes="(max-width: 768px) 100vw, 800px"
+                      className="object-contain p-2"
+                      unoptimized
+                    />
+                  )}
+                </div>
+              )
+            })}
 
             {/* Local Answer Toggle & Text Overlay */}
             {answerDisplayMode === 'local' && currentImage?.answer && (
