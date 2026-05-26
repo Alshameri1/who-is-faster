@@ -30,8 +30,9 @@ export function GamePlayClient({ gameId }: GamePlayClientProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     ALL_IMAGES.forEach((src) => {
+      const optimizedSrc = `/_next/image?url=${encodeURIComponent(src)}&w=828&q=75`
       const img = new Image()
-      img.src = src
+      img.src = optimizedSrc
       img.decode().catch(() => {
         // Safe to ignore decode errors on background preloading
       })
@@ -78,16 +79,6 @@ export function GamePlayClient({ gameId }: GamePlayClientProps) {
   // ── Main stage wrapper ─────────────────────────────────────────────────────
   return (
     <div className="h-screen overflow-hidden bg-[#0c1628]">
-      {/* Hidden Image Preloader Stack */}
-      <div
-        style={{ display: 'none', width: 0, height: 0, overflow: 'hidden' }}
-        className="hidden"
-        aria-hidden="true"
-      >
-        {ALL_IMAGES.map((src) => (
-          <img key={src} src={src} alt="" loading="eager" />
-        ))}
-      </div>
 
       {game.gameState === 'ROUND_INTRO' && (
         <RoundIntro

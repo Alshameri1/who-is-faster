@@ -1,6 +1,7 @@
 import { ResultPanelClient } from '@/features/result-panel/page'
 import { getGameSessionAction } from '@/lib/redis-actions'
 import { Metadata } from 'next'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -20,5 +21,9 @@ export default async function ResultPanelPage({ params }: Props) {
   // Cache-first session fetch on server
   const initialSession = await getGameSessionAction(id)
   
-  return <ResultPanelClient gameId={id} initialSession={initialSession} />
+  return (
+    <ErrorBoundary>
+      <ResultPanelClient gameId={id} initialSession={initialSession} />
+    </ErrorBoundary>
+  )
 }

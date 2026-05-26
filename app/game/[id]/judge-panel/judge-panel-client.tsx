@@ -39,8 +39,10 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return
     ALL_IMAGES.forEach((src) => {
+      // Preload optimized version (w=640) matching the display width
+      const optimizedSrc = `/_next/image?url=${encodeURIComponent(src)}&w=640&q=75`
       const img = new Image()
-      img.src = src
+      img.src = optimizedSrc
       img.decode().catch(() => {
         // Safe to ignore decode errors on background preloading
       })
@@ -84,21 +86,25 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
       })
     }
 
-    // 2. Update Image Stack visibility directly (hidden/block toggle)
+    // 2. Update Image Stack natively (mount active image, unmount old one)
     if (imageContainerRef.current) {
-      const images = imageContainerRef.current.children
+      // Clear all child nodes completely to release GPU memory immediately
+      imageContainerRef.current.innerHTML = ''
+      
       let matched = false
-      for (let i = 0; i < images.length; i++) {
-        const child = images[i] as HTMLElement
-        const imgSrc = child.getAttribute('data-img-src')
-        if (imgSrc === image) {
-          child.classList.remove('opacity-0', 'invisible', 'pointer-events-none')
-          child.classList.add('opacity-100', 'visible')
-          matched = true
-        } else {
-          child.classList.remove('opacity-100', 'visible')
-          child.classList.add('opacity-0', 'invisible', 'pointer-events-none')
-        }
+      if (image) {
+        // Only mount the single active image, resized down server-side
+        const wrapper = document.createElement('div')
+        wrapper.className = 'absolute inset-0 w-full h-full opacity-100 visible'
+        
+        const img = document.createElement('img')
+        img.src = `/_next/image?url=${encodeURIComponent(image)}&w=640&q=75`
+        img.alt = 'السؤال الحالي'
+        img.className = 'object-contain p-2 w-full h-full absolute inset-0'
+        
+        wrapper.appendChild(img)
+        imageContainerRef.current.appendChild(wrapper)
+        matched = true
       }
       
       // Update fallback viewport display
@@ -357,24 +363,7 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
 
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
               {/* Image Stack Viewport container */}
-              <div ref={imageContainerRef} className="absolute inset-0 w-full h-full">
-                {ALL_IMAGES.map((src, idx) => (
-                  <div
-                    key={src + '-' + idx}
-                    data-img-src={src}
-                    className="absolute inset-0 w-full h-full opacity-0 invisible pointer-events-none transition-[opacity,visibility] duration-0"
-                  >
-                    <Image 
-                      src={src} 
-                      alt={`السؤال ${idx}`} 
-                      fill
-                      sizes="(max-width: 768px) 100vw, 600px"
-                      className="object-contain"
-                      unoptimized
-                    />
-                  </div>
-                ))}
-              </div>
+              <div ref={imageContainerRef} className="absolute inset-0 w-full h-full" />
 
               {/* Fallback when no image is active */}
               <div 
@@ -445,16 +434,6 @@ export function JudgePanelClient({ gameId }: JudgePanelClientProps) {
       <footer className="mx-auto max-w-5xl mt-12 text-center text-xs text-white/20 border-t border-white/5 pt-4">
         من الأسرع • جميع الحقوق محفوظة لغرفة التحكيم
       </footer>
-      {/* Hidden Image Preloader Stack */}
-      <div
-        style={{ display: 'none', width: 0, height: 0, overflow: 'hidden' }}
-        className="hidden"
-        aria-hidden="true"
-      >
-        {ALL_IMAGES.map((src) => (
-          <img key={src} src={src} alt="" loading="eager" />
-        ))}
-      </div>
     </div>
   )
 }

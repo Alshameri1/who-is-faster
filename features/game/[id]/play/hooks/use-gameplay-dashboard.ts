@@ -40,9 +40,10 @@ export function useGameplayDashboard(
   // ── Preload Helper ─────────────────────────────────────────────────────────
   const preloadImage = useCallback((url: string) => {
     if (typeof window === 'undefined' || !url) return
+    const optimizedUrl = `/_next/image?url=${encodeURIComponent(url)}&w=828&q=75`
     const img = new Image()
     img.crossOrigin = 'anonymous'
-    img.src = url
+    img.src = optimizedUrl
     img.decode().catch(err => {
       console.warn('Failed to background-decode preloaded image:', err)
     })

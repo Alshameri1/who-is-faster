@@ -78,6 +78,13 @@ export function GameplayDashboard({
           {/* Image — fills remaining space */}
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border-2 border-white/20 bg-white/5 md:rounded-3xl flex items-center justify-center">
             {preloadedImages.map((img, idx) => {
+              const prevIndex = (currentIndex - 1 + preloadedImages.length) % preloadedImages.length
+              const nextIndex = (currentIndex + 1) % preloadedImages.length
+
+              // Only mount the Previous, Current, and Next images in the DOM for Safari memory sanity
+              const shouldMount = idx === currentIndex || idx === prevIndex || idx === nextIndex
+              if (!shouldMount) return null
+
               const isActive = idx === currentIndex
               return (
                 <div
@@ -92,10 +99,9 @@ export function GameplayDashboard({
                       src={img.image}
                       alt={`تحدي ${idx}`}
                       fill
-                      priority={isActive || idx === (currentIndex + 1) % preloadedImages.length}
+                      priority={isActive || idx === nextIndex}
                       sizes="(max-width: 768px) 100vw, 800px"
                       className="object-contain p-2"
-                      unoptimized
                     />
                   )}
                 </div>
