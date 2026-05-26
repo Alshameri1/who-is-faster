@@ -16,24 +16,6 @@ const ibm_plex_sans_arabic = IBM_Plex_Sans_Arabic({
 export const metadata: Metadata = {
   title: 'من الأسرع - تحدي السرعة',
   description: 'تحدي السرعة - من سيكون الأسرع؟',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
 }
 
 export default function RootLayout({
