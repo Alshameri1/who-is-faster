@@ -35,6 +35,7 @@ export interface GamePlayState {
   usedPlayersTeam1:  string[]
   usedPlayersTeam2:  string[]
   isTieBreaker:      boolean
+  lastRoundScores?:  { team1: number; team2: number }
 }
 
 export interface GamePlayClientProps {
@@ -78,10 +79,12 @@ export interface PlayerCardProps {
 export interface GameplayDashboardProps {
   sessionData:     GameSessionData
   playState:       GamePlayState
-  onCorrectAnswer: () => void
-  onRoundEnd:      (winningTeam: 1 | 2) => void
+  onTurnToggle:    () => void
+  onRoundEnd:      (winningTeam: 1 | 2 | 'tie', team1RoundScore?: number, team2RoundScore?: number) => void
   onRestart:       () => void
   isTieBreaker?:   boolean
+  isMenuOpen:      boolean
+  setIsMenuOpen:   (open: boolean) => void
 }
  
 export interface TimerState {

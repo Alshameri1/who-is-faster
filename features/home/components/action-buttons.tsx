@@ -34,30 +34,42 @@ export function ActionButtons({
       icon: ExternalLink,
       onClick: onOpenInNewTab,
       iconClass: "transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5",
-      bgClass: "bg-blue-500 shadow-blue-500/20 hover:bg-blue-600 hover:shadow-blue-500/30",
-      checkUrl: true,
-    },
-    {
-      text: "نسخ الرابط",
-      icon: Copy,
-      onClick: onCopyLink,
-      iconClass: "transition-transform group-hover:scale-110",
       bgClass: "bg-amber-500 shadow-amber-500/20 hover:bg-amber-600 hover:shadow-amber-500/30",
       checkUrl: true,
     },
     {
-      text: "تابع اللعب هنا",
+      text: "انطلق! ابدأ اللعب الآن",
       icon: Play,
       onClick: onPlayLocally,
       iconClass: "transition-transform group-hover:translate-x-0.5",
       bgClass: "bg-red-500 shadow-red-500/20 hover:bg-red-600 hover:shadow-red-500/30",
       checkUrl: false,
     },
+    {
+      text: "نسخ الرابط",
+      icon: Copy,
+      onClick: onCopyLink,
+      iconClass: "transition-transform group-hover:scale-110",
+      bgClass: "border-2 border-[#1e3a5f] bg-[#0c1628]  text-gray-300 hover:border-blue-500/50 hover:text-white",
+      checkUrl: true,
+    },
   ]
 
   return (
     <div className="mt-6 flex flex-col gap-3">
       {/* رندرة الأزرار الأساسية عبر الـ Loop */}
+      <Button
+        onClick={onToggleLocalResults}
+        text={showLocalResults ? 'إخفاء النتيجة المباشرة' : 'إظهار النتيجة في صفحة اللعب'}
+        icon={BarChart3}
+        iconClassName="transition-transform group-hover:scale-110"
+        className={[
+          baseButtonStyles,
+          showLocalResults
+            ? 'bg-green-500 text-white shadow-lg shadow-green-500/20 hover:bg-green-600'
+            : 'bg-blue-500 shadow-blue-500/20 hover:bg-blue-600 hover:shadow-blue-500/30 text-gray-30 hover:text-white',
+        ].join(' ')}
+      />
       {primaryButtons.map((btn, index) => (
         <Button
           key={index}
@@ -73,19 +85,6 @@ export function ActionButtons({
         />
       ))}
 
-      {/* زر تبديل النتائج (تم فصله لأن استايله وشروطه مختلفة تماماً عن البقية) */}
-      <Button
-        onClick={onToggleLocalResults}
-        text={showLocalResults ? 'إخفاء النتيجة المباشرة' : 'إظهار النتيجة في صفحة اللعب'}
-        icon={BarChart3}
-        iconClassName="transition-transform group-hover:scale-110"
-        className={[
-          baseButtonStyles,
-          showLocalResults
-            ? 'bg-green-500 text-white shadow-lg shadow-green-500/20 hover:bg-green-600'
-            : 'border-2 border-[#1e3a5f] bg-[#0c1628] text-gray-300 hover:border-blue-500/50 hover:text-white',
-        ].join(' ')}
-      />
     </div>
   )
 }

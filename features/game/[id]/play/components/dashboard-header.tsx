@@ -14,6 +14,8 @@ interface DashboardHeaderProps {
   team1TimeMs:  number
   team2TimeMs:  number
   isTieBreaker: boolean
+  team1RoundScore: number
+  team2RoundScore: number
 }
 
 export function DashboardHeader({
@@ -22,6 +24,8 @@ export function DashboardHeader({
   team1TimeMs,
   team2TimeMs,
   isTieBreaker,
+  team1RoundScore,
+  team2RoundScore,
 }: DashboardHeaderProps) {
   const turn = playState.currentTeamTurn
 
@@ -60,13 +64,24 @@ export function DashboardHeader({
           />
         </div>
 
-        {/* Center: active turn indicator (20%) */}
-        <div className="flex w-[20%] justify-center">
+        {/* Center: active turn indicator and round scores (20%) */}
+        <div className="flex w-[20%] items-center justify-center gap-4">
+          {/* Team 2 (Red) Round Score - Right side of screen visually in RTL */}
+          <div className="flex items-center justify-center">
+            <span 
+              className="text-2xl md:text-3xl font-black text-red-400" 
+              style={{ textShadow: '0 0 15px rgba(248,113,113,0.6)' }}
+            >
+              {team2RoundScore}
+            </span>
+          </div>
+
+          {/* Active Turn Pill */}
           <div
             className={[
               'flex min-w-24 flex-row items-center justify-center gap-2',
-              'rounded-2xl border-2 px-4 py-2.5 font-bold shadow-md',
-              'scale-110 transition-all duration-500',
+              'rounded-2xl border-2 px-4 py-2 font-bold shadow-md',
+              'transition-all duration-500 scale-105',
               turn === 1
                 ? 'border-blue-400/80 bg-blue-600/40 text-white shadow-blue-500/50'
                 : 'border-red-400/80 bg-red-600/40 text-white shadow-red-500/50',
@@ -77,6 +92,16 @@ export function DashboardHeader({
             </span>
             <span className="max-w-28 truncate text-center text-xs leading-tight md:text-sm">
               {activeName}
+            </span>
+          </div>
+
+          {/* Team 1 (Blue) Round Score - Left side of screen visually in RTL */}
+          <div className="flex items-center justify-center">
+            <span 
+              className="text-2xl md:text-3xl font-black text-cyan-400" 
+              style={{ textShadow: '0 0 15px rgba(34,211,238,0.6)' }}
+            >
+              {team1RoundScore}
             </span>
           </div>
         </div>

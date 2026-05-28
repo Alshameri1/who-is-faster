@@ -47,24 +47,19 @@ export function PauseMenu({ isOpen, onClose, onRestart, gameId }: PauseMenuProps
     }
   }, [isOpen])
 
-  // Copy result panel URL to clipboard
+  // Copy judge panel URL to clipboard
   const handleCopyQR = useCallback(async () => {
-    const url = `${window.location.origin}/game/${gameId}/result-panel`
+    const url = `${window.location.origin}/game/${gameId}/judge-panel`
     try {
       await navigator.clipboard.writeText(url)
-      toast.success('تم نسخ رابط شاشة الجمهور', {
-        description: 'يمكنك الآن مشاركة الرابط',
+      toast.success('تم نسخ رابط غرفة التحكم والنتائج', {
+        description: 'يمكنك الآن مشاركة الرابط مع الحكام والجمهور',
         duration: 3000,
       })
     } catch {
       toast.error('فشل في نسخ الرابط')
     }
   }, [gameId])
-
-  // Navigate to management panel
-  const handleManagementPanel = useCallback(() => {
-    router.push(`/game/${gameId}/result-panel`)
-  }, [router, gameId])
 
   // Navigate to judge panel
   const handleJudgePanel = useCallback(() => {
@@ -189,32 +184,12 @@ export function PauseMenu({ isOpen, onClose, onRestart, gameId }: PauseMenuProps
               <QrCode className="w-6 h-6 text-purple-400" />
             </div>
             <div className="text-right">
-              <span className="block text-white font-bold">شاشة الجمهور (QR)</span>
-              <span className="block text-white/50 text-sm">نسخ رابط العرض</span>
+              <span className="block text-white font-bold">شاشة الجمهور والتحكيم</span>
+              <span className="block text-white/50 text-sm">نسخ رابط العرض والنتيجة</span>
             </div>
           </button>
 
-          {/* Management Panel */}
-          <button
-            onClick={handleManagementPanel}
-            className={`
-              w-full flex items-center gap-4 px-5 py-4 
-              bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-2xl 
-              transition-all duration-300 group hover:scale-[1.02]
-              transform ${isAnimating ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}
-            `}
-            style={{ transitionDelay: isAnimating ? '250ms' : '0ms' }}
-          >
-            <div className="p-2 bg-cyan-500/30 rounded-xl group-hover:bg-cyan-500/50 transition-colors">
-              <Settings className="w-6 h-6 text-cyan-400" />
-            </div>
-            <div className="text-right">
-              <span className="block text-white font-bold">لوحة المنظّم</span>
-              <span className="block text-white/50 text-sm">عرض النتائج</span>
-            </div>
-          </button>
-
-          {/* Judge Panel */}
+          {/* Judge & Results Panel */}
           <button
             onClick={handleJudgePanel}
             className={`
@@ -223,14 +198,14 @@ export function PauseMenu({ isOpen, onClose, onRestart, gameId }: PauseMenuProps
               transition-all duration-300 group hover:scale-[1.02]
               transform ${isAnimating ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}
             `}
-            style={{ transitionDelay: isAnimating ? '280ms' : '0ms' }}
+            style={{ transitionDelay: isAnimating ? '250ms' : '0ms' }}
           >
             <div className="p-2 bg-amber-500/30 rounded-xl group-hover:bg-amber-500/50 transition-colors">
               <Settings className="w-6 h-6 text-amber-400" />
             </div>
             <div className="text-right">
-              <span className="block text-white font-bold">لوحة التحكيم</span>
-              <span className="block text-white/50 text-sm">عرض إجابات الأسئلة</span>
+              <span className="block text-white font-bold">لوحة التحكيم والنتائج</span>
+              <span className="block text-white/50 text-sm">عرض الإجابات وإدارة النتيجة المباشرة</span>
             </div>
           </button>
 

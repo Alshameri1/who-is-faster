@@ -2,9 +2,8 @@
 // ─── GameplayDashboard ────────────────────────────────────────────────────────
 // Purely presentational — all logic lives in useGameplayDashboard.
 
-import { Check, SkipForward, Menu } from 'lucide-react'
 import { Button }              from '@/components/button'
-import { PauseMenu }           from '../components/pause-menu'
+import { ControlActionButtons } from '../components/control-action-buttons'
 import { DashboardHeader }     from '../components/dashboard-header'
 import { useGameplayDashboard } from '../hooks/use-gameplay-dashboard'
 import type { GameplayDashboardProps } from '../interfaces/types'
@@ -13,44 +12,32 @@ import Image from 'next/image'
 export function GameplayDashboard({
   sessionData,
   playState,
-  onCorrectAnswer,
   onRoundEnd,
   onRestart,
   isTieBreaker = false,
+  isMenuOpen,
+  setIsMenuOpen,
+  onTurnToggle,
 }: GameplayDashboardProps) {
   const {
     team1TimeMs, team2TimeMs,
-    isPaused, isMenuOpen,
+    isPaused,
     currentImage,
     preloadedImages,
     currentIndex,
     showAnswer,
     setShowAnswer,
     answerDisplayMode,
-    setIsMenuOpen,
-    handleMenuClose,
     handleCorrect,
     handleSkip,
-  } = useGameplayDashboard(sessionData, playState, onCorrectAnswer, onRoundEnd)
+    team1RoundScore,
+    team2RoundScore,
+    postTurnTeam,
+    handlePostTurnComplete,
+  } = useGameplayDashboard(sessionData, playState, onTurnToggle, onRoundEnd, isMenuOpen, setIsMenuOpen)
 
   return (
-    <div dir="rtl" className="flex h-screen flex-col overflow-hidden bg-[#0c1628]">
-
-      {/* ── Hamburger ───────────────────────────────────────────────────────── */}
-      <button
-        onClick={() => setIsMenuOpen(true)}
-        className="absolute top-3 right-4 z-50 rounded-xl border border-white/20 bg-white/10 p-2 transition-all hover:bg-white/20"
-        aria-label="قائمة الإيقاف"
-      >
-        <Menu className="h-5 w-5 text-white" />
-      </button>
-
-      <PauseMenu
-        isOpen={isMenuOpen}
-        onClose={handleMenuClose}
-        onRestart={onRestart}
-        gameId={sessionData.gameId}
-      />
+    <div dir="rtl" className="flex h-full flex-col overflow-hidden bg-[#0c1628]">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <DashboardHeader
@@ -59,6 +46,8 @@ export function GameplayDashboard({
         team1TimeMs={team1TimeMs}
         team2TimeMs={team2TimeMs}
         isTieBreaker={isTieBreaker}
+        team1RoundScore={team1RoundScore}
+        team2RoundScore={team2RoundScore}
       />
 
       {/* ── Main content (image) ─────────────────────────────────────────────
@@ -68,13 +57,13 @@ export function GameplayDashboard({
         {/* Shared width wrapper — image + footer are siblings of this */}
         <div className="flex w-full flex-col gap-3 h-full">
           {/* Category badge */}
-          {playState.selectedCategory && (
-            <div className="shrink-0 text-center">
+          <div className="shrink-0 flex items-center justify-center gap-3">
+            {playState.selectedCategory && (
               <span className="inline-block rounded-full border border-purple-400/50 bg-purple-500/20 px-3 py-1 text-xs font-medium text-purple-300 md:text-sm">
                 {playState.selectedCategory}
               </span>
-            </div>
-          )}
+            )}
+          </div>
           {/* Image — fills remaining space */}
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border-2 border-white/20 bg-white/5 md:rounded-3xl flex items-center justify-center">
             {preloadedImages.map((img, idx) => {
@@ -145,48 +134,54 @@ export function GameplayDashboard({
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
               <span className="rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
                 {isTieBreaker
-                  ? 'جولة فاصلة'
+                  ? 'جولة حاسمة'
                   : `الجولة ${playState.currentRound} / ${sessionData.rounds}`}
               </span>
             </div>
+
+            {/* Mid-Game Image Counter for Marathon */}
+            {sessionData.gameMode === 'marathon' && postTurnTeam === null && (
+              <div className="absolute top-4 right-4 z-40 animate-in fade-in zoom-in duration-300">
+                <div className="flex flex-col items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-2xl p-3 md:p-4 shadow-2xl">
+                  <span className="text-xs md:text-sm text-yellow-400 font-bold mb-1">النقاط</span>
+                  <span className="text-3xl md:text-5xl font-black text-white" style={{ textShadow: '0 0 20px rgba(234,179,8,0.5)' }}>
+                    {playState.currentTeamTurn === 1 ? team1RoundScore : team2RoundScore}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Post-Turn Summary Overlay */}
+            {postTurnTeam !== null && (
+              <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="text-center transform animate-in zoom-in-50 duration-500 delay-150">
+                  <h2 className="text-3xl md:text-5xl font-black text-white mb-2">انتهى الوقت!</h2>
+                  <p className="text-xl md:text-2xl text-gray-300 mb-8">
+                    مجموع الإجابات الصحيحة:
+                  </p>
+                  <div className={`text-7xl md:text-9xl font-black mb-12 ${postTurnTeam === 1 ? 'text-cyan-400' : 'text-red-400'}`} style={{ textShadow: `0 0 40px ${postTurnTeam === 1 ? 'rgba(34,211,238,0.5)' : 'rgba(248,113,113,0.5)'}` }}>
+                    {postTurnTeam === 1 ? team1RoundScore : team2RoundScore}
+                  </div>
+                  <button 
+                    onClick={handlePostTurnComplete}
+                    className="px-8 py-4 bg-white text-black font-bold text-xl md:text-2xl rounded-full hover:scale-105 active:scale-95 transition-transform shadow-2xl shadow-white/20"
+                  >
+                    متابعة
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Footer buttons — same width as image via shared wrapper ─────── */}
           <div className="shrink-0 pb-3 md:pb-4">
-            <div className="flex items-stretch gap-2 md:gap-3 w-full">
-
-              {/* Skip — 20% */}
-              <Button
-                onClick={handleSkip}
-                text="تجاوز"
-                icon={SkipForward}
-                className={[
-                  'w-[20%] rounded-xl border border-gray-500/50',
-                  'bg-linear-to-b from-gray-600 to-gray-700',
-                  'py-3 text-sm font-bold text-white md:py-4 md:text-base',
-                  'transition-all hover:from-gray-500 hover:to-gray-600',
-                  'hover:scale-[1.02] active:scale-[0.98]',
-                  isPaused ? 'cursor-not-allowed opacity-50' : '',
-                ].join(' ')}
-              />
-
-              {/* Correct — 80% */}
-              <Button
-                onClick={handleCorrect}
-                text="إجابة صحيحة"
-                icon={Check}
-                className={[
-                  'w-[80%] rounded-xl',
-                  'bg-linear-to-b from-green-500 to-emerald-600',
-                  'py-3 text-base font-bold text-white md:py-4 md:text-xl',
-                  'shadow-lg shadow-green-500/30',
-                  'transition-all hover:from-green-400 hover:to-emerald-500',
-                  'hover:scale-[1.02] active:scale-[0.98]',
-                  isPaused ? 'cursor-not-allowed opacity-50' : '',
-                ].join(' ')}
-              />
-
-            </div>
+            <ControlActionButtons
+              onSkip={handleSkip}
+              onCorrect={handleCorrect}
+              isPaused={isPaused}
+              displayMode={answerDisplayMode}
+              role="player"
+            />
           </div>
 
         </div>

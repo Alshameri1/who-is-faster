@@ -121,7 +121,7 @@ export function FortuneWheel({ onComplete }: FortuneWheelProps) {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen flex flex-col items-center justify-center p-4">
+    <div dir="rtl" className="h-full flex flex-col items-center justify-center p-4">
       {/* Header */}
       <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">عجلة الحظ</h2>
       <p className="text-white/60 mb-8">اختر الفئة بلف العجلة</p>

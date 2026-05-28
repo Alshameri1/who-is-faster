@@ -15,7 +15,7 @@ export function useGamePlay(gameId: string) {
   const [gameState,   setGameState]   = useState<GameState>('LOADING')
   const [sessionData, setSessionData] = useState<GameSessionData | null>(null)
   const [playState,   setPlayState]   = useState<GamePlayState>(INITIAL_PLAY_STATE)
-  const [roundWinner, setRoundWinner] = useState<1 | 2 | null>(null)
+  const [roundWinner, setRoundWinner] = useState<1 | 2 | 'tie' | null>(null)
   const [error,       setError]       = useState<string | null>(null)
 
   // ── Init player pools once session loads ───────────────────────────────────
@@ -105,13 +105,16 @@ export function useGamePlay(gameId: string) {
   const handleCountdownComplete = useCallback(() => setGameState('PLAYING'), [])
 
   // Stay in PLAYING, just switch turn (timer keeps running)
-  const handleCorrectAnswer = useCallback(() => setPlayState(toggleTurn), [])
+  const handleTurnToggle = useCallback(() => setPlayState(toggleTurn), [])
 
-  const handleRoundEnd = useCallback((winningTeam: 1 | 2) => {
+  const handleRoundEnd = useCallback((winningTeam: 1 | 2 | 'tie', team1RoundScore?: number, team2RoundScore?: number) => {
     setPlayState(prev => ({
       ...prev,
       team1Score: prev.team1Score + (winningTeam === 1 ? 1 : 0),
       team2Score: prev.team2Score + (winningTeam === 2 ? 1 : 0),
+      lastRoundScores: (team1RoundScore !== undefined && team2RoundScore !== undefined) 
+        ? { team1: team1RoundScore, team2: team2RoundScore } 
+        : prev.lastRoundScores
     }))
     setRoundWinner(winningTeam)
     setGameState('ROUND_RESULT')
@@ -121,7 +124,15 @@ export function useGamePlay(gameId: string) {
     if (!sessionData) return
 
     // Tie-breaker just ended
-    if (playState.isTieBreaker) { setGameState('GAME_OVER'); return }
+    if (playState.isTieBreaker) { 
+      // If still tied, loop another tie breaker
+      if (playState.team1Score === playState.team2Score) {
+        setGameState('TIE_BREAKER_INTRO')
+        return
+      }
+      setGameState('GAME_OVER'); 
+      return 
+    }
 
     // All rounds done
     if (playState.currentRound >= sessionData.rounds) {
@@ -187,7 +198,7 @@ export function useGamePlay(gameId: string) {
     handleWheelComplete,
     handleMatchupComplete,
     handleCountdownComplete,
-    handleCorrectAnswer,
+    handleTurnToggle,
     handleRoundEnd,
     handleRoundResultComplete,
     handleTieBreakerIntroComplete,

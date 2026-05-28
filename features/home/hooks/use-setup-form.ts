@@ -3,9 +3,11 @@
 
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useRouter } from '@/hooks/use-router'
 import { toast } from 'sonner'
 import { usePopup, type GameSessionData } from '@/contexts/popup-context'
+import { triggerLoader, stopLoader } from '@/components/NavigationLoader'
 import {
   createInitialTeams,
   generatePlayerId,
@@ -18,6 +20,7 @@ import type { Team } from '../interfaces/types'
 
 export function useSetupForm() {
   const { closePopup, openPopup, setGameSession } = usePopup()
+  const router = useRouter()
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [teams,             setTeams]             = useState<Team[]>(createInitialTeams)
@@ -26,6 +29,38 @@ export function useSetupForm() {
   const [answerDisplayMode, setAnswerDisplayMode] = useState<'local' | 'judge'>('local')
   const [editingTeamName,   setEditingTeamName]   = useState('')
   const [isPending,         setIsPending]         = useState(false)
+  const [showModeSelection, setShowModeSelection] = useState(false)
+
+  // ── Load cached setup form data on mount (hydration safe) ──────────────────
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem('who_is_faster_setup_cache')
+      if (cached) {
+        const data = JSON.parse(cached)
+        if (data.rounds) setRounds(data.rounds.toString())
+        if (data.timePerPlayer) setTimePerPlayer(data.timePerPlayer.toString())
+        if (data.answerDisplayMode) setAnswerDisplayMode(data.answerDisplayMode)
+        if (data.teams) {
+          setTeams(prev => prev.map((t, idx) => {
+            const cachedTeam = data.teams[idx]
+            if (cachedTeam) {
+              return {
+                ...t,
+                name: cachedTeam.name || t.name,
+                players: (cachedTeam.players || []).map((name: string) => ({
+                  id: generatePlayerId(),
+                  name
+                }))
+              }
+            }
+            return t
+          }))
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cached setup form:', e)
+    }
+  }, [])
 
   // ── Reset (called on modal close) ──────────────────────────────────────────
   const resetForm = useCallback(() => {
@@ -168,7 +203,13 @@ export function useSetupForm() {
       return
     }
 
+    // Validation passed, show mode selection
+    setShowModeSelection(true)
+  }, [teams])
+
+  const finalizeSetup = useCallback(async (mode: 'blitz' | 'marathon') => {
     // 5. Build session
+    triggerLoader()
     setIsPending(true)
     const gameSessionData: GameSessionData = {
       gameId: generateGameId(),
@@ -182,49 +223,63 @@ export function useSetupForm() {
         name:    teams[1].name,
         players: teams[1].players.map(p => ({ id: p.id, name: p.name.trim() })),
       },
-      rounds:        parseInt(rounds),
-      timePerPlayer: parseInt(timePerPlayer),
+      rounds:        parseInt(rounds as unknown as string),
+      timePerPlayer: parseInt(timePerPlayer as unknown as string),
       isOrganizerView: true,
       answerDisplayMode,
+      gameMode: mode,
       createdAt: new Date().toISOString(),
     }
 
-    // 6. Persist
+    // 6. Cache state to localStorage & save session
     try {
       if (typeof window !== 'undefined') {
         localStorage.setItem('game_session_data', JSON.stringify(gameSessionData))
+        
+        // Cache form inputs for revisit pre-population
+        const setupFormCache = {
+          teams: teams.map(t => ({
+            name: t.name,
+            players: t.players.map(p => p.name.trim())
+          })),
+          rounds,
+          timePerPlayer,
+          answerDisplayMode
+        }
+        localStorage.setItem('who_is_faster_setup_cache', JSON.stringify(setupFormCache))
       }
       await saveGameSession(gameSessionData)
-    } catch {
+    } catch (e) {
+      console.error(e)
       toast.error('خطأ في حفظ البيانات', { description: 'تعذر حفظ بيانات اللعبة', duration: 4000 })
       setIsPending(false)
+      stopLoader()
       return
     }
 
     setGameSession(gameSessionData)
 
     toast.success('تم إعداد اللعبة بنجاح!', {
-      description: `${teams[0].players.length + teams[1].players.length} متسابقين - ${rounds} جولات`,
+      description: `${teams[0].players.length + teams[1].players.length} متسابقين - ${rounds} جولات - ${mode === 'blitz' ? 'طور التناوب السريع' : 'طور الماراثون الزمني'}`,
       duration: 3000,
     })
 
-    closePopup()
-    setTimeout(() => {
-      openPopup('post-setup')
-      setIsPending(false)
-    }, 150)
-  }, [teams, rounds, timePerPlayer, answerDisplayMode, closePopup, openPopup, setGameSession])
+    setIsPending(false)
+    router.push('/setup/success')
+  }, [teams, rounds, timePerPlayer, answerDisplayMode, setGameSession, router])
 
   return {
     // state
     teams, rounds, timePerPlayer, answerDisplayMode, editingTeamName,
     allPlayerNames,
     isPending,
+    showModeSelection,
     // setters (for selects)
     setRounds, setTimePerPlayer, setAnswerDisplayMode, setEditingTeamName,
+    setShowModeSelection,
     // handlers
     startEditingTeamName, saveTeamName, cancelEditingTeamName,
     addPlayer, updatePlayerName, removePlayer,
-    handleContinue, resetForm,
+    handleContinue, finalizeSetup, resetForm,
   }
 }

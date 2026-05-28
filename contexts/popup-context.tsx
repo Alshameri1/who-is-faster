@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 
 // Types for popup management
 export type PopupType = 'info' | 'setup' | 'post-setup' | 'settings' | null
@@ -22,6 +22,7 @@ export interface GameSessionData {
   timePerPlayer: number
   isOrganizerView: boolean
   answerDisplayMode: 'local' | 'judge'
+  gameMode: 'blitz' | 'marathon'
   createdAt: string
 }
 
@@ -45,6 +46,19 @@ export function PopupProvider({ children }: { children: ReactNode }) {
 
   const closePopup = useCallback(() => {
     setActivePopup(null)
+  }, [])
+
+  // Enable URL deep-linking for Settings and Info modals
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const modal = params.get('modal')
+      if (modal === 'settings') {
+        setActivePopup('settings')
+      } else if (modal === 'info') {
+        setActivePopup('info')
+      }
+    }
   }, [])
 
   return (

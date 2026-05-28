@@ -1,5 +1,7 @@
+// ─── app/game/[id]/judge-panel/page.tsx
+
 import { Metadata } from 'next'
-import { JudgePanelClient } from './judge-panel-client'
+import { JudgePanel } from '@/features/judge-panel/components'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -15,5 +17,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function JudgePanelPage({ params }: Props) {
   const { id } = await params
-  return <JudgePanelClient gameId={id} />
+  return <JudgePanel gameId={id} />
 }

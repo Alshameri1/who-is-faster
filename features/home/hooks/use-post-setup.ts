@@ -1,29 +1,45 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { usePopup } from '@/contexts/popup-context'
 import { toast } from 'sonner'
 
 export function usePostSetup(onAnswerDisplayModeChange?: (mode: 'local' | 'judge') => void) {
   const { closePopup, gameSession, setGameSession } = usePopup()
+  const router = useRouter()
 
   const [resultPanelUrl, setResultPanelUrl] = useState('')
   const [gamePlayUrl,    setGamePlayUrl]    = useState('')
   const [showLocalResults, setShowLocalResults] = useState(false)
 
+  // Recovery effect to load game session from localStorage if missing from context
+  useEffect(() => {
+    if (!gameSession && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('game_session_data')
+        if (stored) {
+          setGameSession(JSON.parse(stored))
+        }
+      } catch (err) {
+        console.error('Failed to recover game session:', err)
+      }
+    }
+  }, [gameSession, setGameSession])
+
   // Build URLs client-side only (avoids SSR hydration mismatch)
   useEffect(() => {
     if (typeof window !== 'undefined' && gameSession?.gameId) {
       const base = window.location.origin
-      setResultPanelUrl(`${base}/game/${gameSession.gameId}/result-panel`)
+      setResultPanelUrl(`${base}/game/${gameSession.gameId}/judge-panel`)
       setGamePlayUrl(`${base}/game/${gameSession.gameId}/play`)
     }
   }, [gameSession?.gameId])
 
   const handleClose = useCallback(() => {
-    closePopup()
+    router.push('/')
     setShowLocalResults(false)
-  }, [closePopup])
+  }, [router])
 
   const handleOpenInNewTab = useCallback(() => {
     if (!resultPanelUrl) return
@@ -56,8 +72,17 @@ export function usePostSetup(onAnswerDisplayModeChange?: (mode: 'local' | 'judge
 
   const handlePlayLocally = useCallback(() => {
     if (!gamePlayUrl) return
+    if (gameSession) {
+      const updatedSession = { ...gameSession, answerDisplayMode: 'judge' as const }
+      try {
+        localStorage.setItem('game_session_data', JSON.stringify(updatedSession))
+        setGameSession(updatedSession)
+      } catch (e) {
+        console.error(e)
+      }
+    }
     window.location.href = gamePlayUrl
-  }, [closePopup, gamePlayUrl])
+  }, [closePopup, gamePlayUrl, gameSession, setGameSession])
 
   const handleToggleLocalResults = useCallback(() => {
     if (!gameSession) return

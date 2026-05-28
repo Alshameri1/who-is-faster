@@ -62,7 +62,7 @@ export function Countdown({ onComplete }: CountdownProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden">
+    <div className="h-full flex items-center justify-center overflow-hidden">
       {/* Radial pulse background */}
       <div 
         className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isAnimating ? 'opacity-100' : 'opacity-0'}`}

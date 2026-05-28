@@ -1,15 +1,21 @@
 'use client'
 
 import { Settings, BookOpen, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { PopupType, usePopup } from '@/contexts/popup-context'
 import { Button } from '@/components/button'
 
 export default function ButtonsSection() {
     const { openPopup } = usePopup()
+    const router = useRouter()
     
     function handleClick (e: React.MouseEvent<HTMLButtonElement>, type: PopupType) {
         e.stopPropagation()
-        openPopup(type)
+        if (type === 'setup') {
+            router.push('/setup')
+        } else {
+            openPopup(type)
+        }
     }
     
     return (

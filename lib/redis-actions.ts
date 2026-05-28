@@ -144,3 +144,24 @@ export async function getGameState(gameId: string) {
   }
   return null;
 }
+
+export async function triggerGameAction(gameId: string, actionType: 'SKIP' | 'CORRECT') {
+  try {
+    const payload = {
+      event: 'GAME_ACTION',
+      actionType,
+      gameId,
+      timestamp: Date.now()
+    };
+    
+    const payloadStr = JSON.stringify(payload);
+    
+    // Publish to Redis
+    await redis.publish(`game:${gameId}:actions`, payloadStr);
+    
+    // Emit locally for instant <15ms response on the same instance
+    globalEmitter.emit(`game:${gameId}:action`, payload);
+  } catch (error) {
+    console.error('Error triggering game action:', error);
+  }
+}

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { Redis } from '@upstash/redis';
+import { globalEmitter } from '@/lib/emitter';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +20,19 @@ export async function GET(
 
   req.signal.addEventListener('abort', () => {
     active = false;
+    globalEmitter.off(`game:${gameId}:action`, handleAction);
     writer.close().catch(() => {});
   });
+
+  const handleAction = async (payload: any) => {
+    if (!active) return;
+    try {
+      await writer.write(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+    } catch (e) {
+      console.error('Failed to write action to stream:', e);
+    }
+  };
+  globalEmitter.on(`game:${gameId}:action`, handleAction);
 
   // Fast polling loop to check for changes and stream them instantly across workers (250ms)
   (async () => {

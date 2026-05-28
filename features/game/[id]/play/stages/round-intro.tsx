@@ -36,7 +36,7 @@ export function RoundIntro({ roundNumber, totalRounds, onComplete }: RoundIntroP
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="h-full flex items-center justify-center relative overflow-hidden">
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (

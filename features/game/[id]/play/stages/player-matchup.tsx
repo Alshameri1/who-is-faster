@@ -26,7 +26,7 @@ export function PlayerMatchup({
   } = usePlayerMatchup({ team1, team2, usedPlayersTeam1, usedPlayersTeam2, onComplete })
 
   return (
-    <div dir="rtl" className="flex h-screen flex-col items-center justify-center overflow-hidden p-4">
+    <div dir="rtl" className="flex h-full flex-col items-center justify-center overflow-hidden p-4">
 
       {/* ── Title ─────────────────────────────────────────────────────────── */}
       <h2 className="mb-2 text-3xl font-bold text-white md:text-4xl">المواجهة</h2>

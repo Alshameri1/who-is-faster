@@ -5,6 +5,9 @@ import './globals.css'
 import { Toaster } from 'sonner'
 import NavigationLoader from '@/components/NavigationLoader'
 import { Suspense } from 'react'
+import { PopupProvider } from '@/contexts/popup-context'
+import { SettingsModal } from '@/components/SettingsModal'
+import { InfoModal } from '@/components/info-modal'
 
 const ibm_plex_sans_arabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic', 'latin'],
@@ -26,21 +29,25 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className={`${ibm_plex_sans_arabic.variable} font-sans antialiased`}>
-        {children}
-        <Suspense fallback={null}>
-          <NavigationLoader />
-        </Suspense>
-        <Toaster
-              position="top-center"
-              dir="rtl"
-              toastOptions={{
-                  style: {
-                      background: '#0f1f35',
-                      border: '1px solid #1e3a5f',
-                      color: '#fff',
-                  },
-              }}
-          />
+        <PopupProvider>
+          {children}
+          <Suspense fallback={null}>
+            <NavigationLoader />
+          </Suspense>
+          <Toaster
+                position="top-center"
+                dir="rtl"
+                toastOptions={{
+                    style: {
+                        background: '#0f1f35',
+                        border: '1px solid #1e3a5f',
+                        color: '#fff',
+                    },
+                }}
+            />
+          <InfoModal />
+          <SettingsModal />
+        </PopupProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
